@@ -6,8 +6,8 @@ import Review from '@/models/Review.model';
 import Product from '@/models/Product.model';
 
 // GET /api/reviews/:productId
-export const GET = withDB(async (_req: NextRequest, ctx?: { params: Record<string, string> }) => {
-  const { productId } = ctx!.params;
+export const GET = withDB(async (_req: NextRequest, ctx?: { params: Promise<{ productId: string }> }) => {
+  const { productId } = await ctx!.params;
   const reviews = await Review.find({ product: productId })
     .populate('user', 'name profileImage')
     .sort('-createdAt');
@@ -15,9 +15,9 @@ export const GET = withDB(async (_req: NextRequest, ctx?: { params: Record<strin
 });
 
 // POST /api/reviews/:productId  (authenticated)
-export const POST = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const POST = withDB(async (req: NextRequest, ctx?: { params: Promise<{ productId: string }> }) => {
   const authUser = getAuthUser(req);
-  const { productId } = ctx!.params;
+  const { productId } = await ctx!.params;
   const { rating, comment } = await req.json();
 
   const product = await Product.findById(productId);

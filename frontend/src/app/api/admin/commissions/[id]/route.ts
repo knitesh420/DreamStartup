@@ -5,11 +5,11 @@ import { ApiError } from '@/lib/ApiError';
 import CommissionSetting from '@/models/CommissionSetting.model';
 
 // PUT /api/admin/commissions/:id
-export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const PUT = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
   requireRole(authUser, 'admin');
 
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const body = await req.json();
 
   const commission = await CommissionSetting.findByIdAndUpdate(id, body, {

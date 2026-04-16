@@ -5,18 +5,18 @@ import { ApiError } from '@/lib/ApiError';
 import StartupKit from '@/models/StartupKit.model';
 
 // GET /api/startup-kits/:id  (public)
-export const GET = withDB(async (_req: NextRequest, ctx?: { params: Record<string, string> }) => {
-  const { id } = ctx!.params;
+export const GET = withDB(async (_req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
+  const { id } = await ctx!.params;
   const kit = await StartupKit.findById(id);
   if (!kit) throw new ApiError(404, 'Startup kit not found');
   return ok(kit, 'Startup kit details');
 });
 
 // PUT /api/startup-kits/:id  (admin)
-export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const PUT = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
   requireRole(authUser, 'admin');
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const body = await req.json();
   const kit = await StartupKit.findByIdAndUpdate(id, body, { new: true, runValidators: true });
   if (!kit) throw new ApiError(404, 'Startup kit not found');
@@ -24,10 +24,10 @@ export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string
 });
 
 // DELETE /api/startup-kits/:id  (admin)
-export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
   requireRole(authUser, 'admin');
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const kit = await StartupKit.findByIdAndDelete(id);
   if (!kit) throw new ApiError(404, 'Startup kit not found');
   return ok(null, 'Startup kit deleted');

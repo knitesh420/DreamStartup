@@ -5,9 +5,9 @@ import { ApiError } from '@/lib/ApiError';
 import Review from '@/models/Review.model';
 
 // PUT /api/reviews/review/:id
-export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const PUT = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const { rating, comment } = await req.json();
 
   const review = await Review.findById(id);
@@ -24,9 +24,9 @@ export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string
 });
 
 // DELETE /api/reviews/review/:id
-export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
 
   const review = await Review.findById(id);
   if (!review) throw new ApiError(404, 'Review not found');

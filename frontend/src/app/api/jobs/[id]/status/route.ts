@@ -6,11 +6,11 @@ import Job from '@/models/Job.model';
 import ServiceProviderProfile from '@/models/ServiceProviderProfile.model';
 
 // PUT /api/jobs/:id/status
-export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const PUT = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
   requireRole(authUser, 'vendor', 'admin');
 
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const { status } = await req.json();
 
   const job = await Job.findById(id);

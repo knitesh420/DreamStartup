@@ -5,11 +5,11 @@ import { ApiError } from '@/lib/ApiError';
 import Order from '@/models/Order.model';
 
 // PUT /api/admin/orders/:id/status
-export const PUT = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const PUT = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
   requireRole(authUser, 'admin');
 
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
   const { orderStatus, paymentStatus, notes } = await req.json();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

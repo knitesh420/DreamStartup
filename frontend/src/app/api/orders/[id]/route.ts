@@ -5,9 +5,9 @@ import { ApiError } from '@/lib/ApiError';
 import Order from '@/models/Order.model';
 
 // GET /api/orders/:id
-export const GET = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const GET = withDB(async (req: NextRequest, ctx?: { params: Promise<{ id: string }> }) => {
   const authUser = getAuthUser(req);
-  const { id } = ctx!.params;
+  const { id } = await ctx!.params;
 
   const order = await Order.findById(id).populate('user', 'name email phone');
   if (!order) throw new ApiError(404, 'Order not found');

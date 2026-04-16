@@ -2,18 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiError } from './ApiError';
 import connectDB from './db';
 
-type Handler = (req: NextRequest, context?: { params: Record<string, string> }) => Promise<NextResponse>;
+type RouteContext<TParams extends Record<string, string> = Record<string, string>> = {
+  params: Promise<TParams>;
+};
+
+type StaticHandler = (req: NextRequest) => Promise<NextResponse>;
+
+type DynamicHandler<TParams extends Record<string, string> = Record<string, string>> = (
+  req: NextRequest,
+  context: RouteContext<TParams>
+) => Promise<NextResponse>;
 
 /**
  * Wraps a Next.js route handler with:
  *  - automatic DB connection
  *  - centralized error handling (ApiError → JSON, unknown → 500)
  */
-export function withDB(handler: Handler): Handler {
+export function withDB(handler: StaticHandler): StaticHandler;
+export function withDB<TParams extends Record<string, string> = Record<string, string>>(
+  handler: DynamicHandler<TParams>
+): DynamicHandler<TParams>;
+export function withDB<TParams extends Record<string, string> = Record<string, string>>(
+  handler: StaticHandler | DynamicHandler<TParams>
+): StaticHandler | DynamicHandler<TParams> {
   return async (req, context) => {
     try {
       await connectDB();
-      return await handler(req, context);
+      return await handler(req, context as RouteContext<TParams>);
     } catch (err) {
       if (err instanceof ApiError) {
         return NextResponse.json(

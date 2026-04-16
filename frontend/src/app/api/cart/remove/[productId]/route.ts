@@ -5,9 +5,9 @@ import { ApiError } from '@/lib/ApiError';
 import Cart from '@/models/Cart.model';
 
 // DELETE /api/cart/remove/:productId
-export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Record<string, string> }) => {
+export const DELETE = withDB(async (req: NextRequest, ctx?: { params: Promise<{ productId: string }> }) => {
   const authUser = getAuthUser(req);
-  const { productId } = ctx!.params;
+  const { productId } = await ctx!.params;
 
   const cart = await Cart.findOne({ user: authUser.id });
   if (!cart) throw new ApiError(404, 'Cart not found');
