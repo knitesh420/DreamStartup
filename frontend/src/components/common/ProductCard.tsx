@@ -4,29 +4,37 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Product } from "@/types";
 import { wishlistService } from "@/services/wishlist.service";
+import { cartService } from "@/services/cart.service";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import toast from "react-hot-toast";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth();
+  const { refreshCart } = useCart();
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   const imageUrl = product.images?.[0] || "";
 
   useEffect(() => {
-    if (user) {
-      checkWishlistStatus();
+    if (!user) {
+      setIsInWishlist(false);
+      return;
     }
-  }, [product._id, user]);
 
-  const checkWishlistStatus = async () => {
-    try {
-      const response = await wishlistService.isInWishlist(product._id);
-      setIsInWishlist(response.data.isInWishlist);
-    } catch (error) {
-      console.error("Failed to check wishlist status:", error);
-    }
-  };
+    const checkWishlistStatus = async () => {
+      try {
+        const response = await wishlistService.isInWishlist(product._id);
+        setIsInWishlist(response.data.isInWishlist);
+      } catch (error) {
+        console.error("Failed to check wishlist status:", error);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [product._id, user]);
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,6 +51,38 @@ export default function ProductCard({ product }: { product: Product }) {
       console.error("Failed to update wishlist:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Please login to add items to your cart.");
+      return;
+    }
+
+    if (product.stock <= 0) {
+      toast.error("This product is currently out of stock.");
+      return;
+    }
+
+    setAddingToCart(true);
+    try {
+      await cartService.addToCart(product._id, product.moq);
+      await refreshCart();
+      toast.success(`${product.title} added to cart!`);
+    } catch (error) {
+      console.error("Failed to add product to cart:", error);
+      const message =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : undefined;
+      toast.error(message ?? "Failed to add to cart. Please try again.");
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -130,12 +170,27 @@ export default function ProductCard({ product }: { product: Product }) {
           MOQ: {product.moq} units
         </div>
 
-        <div className="mt-3">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={addingToCart || product.stock <= 0}
+            className="inline-flex min-w-0 items-center justify-center rounded-lg bg-[#1e3a5f] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#162d4a] disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600 sm:text-sm"
+          >
+            <span className="truncate">
+              {product.stock <= 0
+                ? "Out of Stock"
+                : addingToCart
+                  ? "Adding..."
+                  : "Add to Cart"}
+            </span>
+          </button>
+
           <Link
             href={`/shop/${product._id}`}
-            className="inline-flex items-center justify-center w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-semibold text-[#233a95] dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            className="inline-flex min-w-0 items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-semibold text-[#233a95] transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-700 sm:text-sm"
           >
-            View Details
+            <span className="truncate">View Details</span>
           </Link>
         </div>
       </div>
