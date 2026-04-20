@@ -43,21 +43,34 @@ export async function saveUploadedImages(files: File[]): Promise<string[]> {
 
     try {
       const buffer = await file.arrayBuffer();
-      const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: "auto",
-            folder: "dreamstartup",
-            public_id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          },
-        );
+      const result = await new Promise<{ secure_url: string }>(
+        (resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "auto",
+              folder: "dreamstartup",
+              public_id: `${Date.now()}-${Math.random()
+                .toString(36)
+                .substring(7)}`,
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+                return;
+              }
 
-        uploadStream.end(Buffer.from(buffer));
-      });
+              if (!result?.secure_url) {
+                reject(new Error("Cloudinary upload returned no secure URL"));
+                return;
+              }
+
+              resolve({ secure_url: result.secure_url });
+            },
+          );
+
+          uploadStream.end(Buffer.from(buffer));
+        }
+      );
 
       paths.push(result.secure_url);
     } catch (error) {
