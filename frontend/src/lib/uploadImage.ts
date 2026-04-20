@@ -1,24 +1,49 @@
 import { v2 as cloudinary } from "cloudinary";
+import { ApiError } from "@/lib/ApiError";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
+const cloudName =
+  process.env.CLOUDINARY_CLOUD_NAME ||
+  process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
 cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
 });
 
 export async function saveUploadedImages(files: File[]): Promise<string[]> {
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new ApiError(
+      500,
+      "Image upload is not configured on the server. Set Cloudinary environment variables."
+    );
+  }
+
   const paths: string[] = [];
 
   for (const file of files) {
-    if (!ALLOWED_TYPES.includes(file.type)) continue;
-    if (file.size > MAX_SIZE_BYTES) continue;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      throw new ApiError(
+        400,
+        `Unsupported image type: ${file.type || "unknown"}`
+      );
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      throw new ApiError(
+        400,
+        `${file.name || "Image"} exceeds the 5 MB upload limit`
+      );
+    }
 
     try {
       const buffer = await file.arrayBuffer();
-      const result = await new Promise<any>((resolve, reject) => {
+      const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
             resource_type: "auto",
@@ -37,7 +62,11 @@ export async function saveUploadedImages(files: File[]): Promise<string[]> {
       paths.push(result.secure_url);
     } catch (error) {
       console.error("Cloudinary upload error:", error);
-      throw new Error("Failed to upload image to Cloudinary");
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to upload image to Cloudinary";
+      throw new ApiError(500, message);
     }
   }
 
