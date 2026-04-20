@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiChevronLeft, FiChevronRight, FiSearch, FiDownload } from 'react-icons/fi';
 import { productService } from '@/services/product.service';
@@ -16,9 +15,6 @@ const CATEGORIES = [
   'Sanitary',
   'Electrical',
   'Home Decor',
-  'Plumbing',
-  'Tools',
-  'Other',
 ] as const;
 
 const LIMIT = 20;
@@ -196,7 +192,14 @@ function ProductModal({
       onClose();
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : err instanceof Error
+            ? err.message
+            : 'Something went wrong. Please try again.';
       toast.error(msg);
     } finally {
       setSaving(false);

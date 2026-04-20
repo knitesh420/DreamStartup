@@ -36,6 +36,29 @@ export function withDB<TParams extends Record<string, string> = Record<string, s
           { status: err.statusCode }
         );
       }
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'name' in err &&
+        err.name === 'ValidationError'
+      ) {
+        const validationError = err as {
+          message?: string;
+          errors?: Record<string, { message?: string }>;
+        };
+        const errors = Object.values(validationError.errors ?? {}).map(
+          (fieldError) => fieldError.message
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            message: errors[0] ?? validationError.message ?? 'Validation failed',
+            errors,
+          },
+          { status: 400 }
+        );
+      }
       // Mongoose duplicate key
       if ((err as NodeJS.ErrnoException & { code?: number }).code === 11000) {
         return NextResponse.json(
