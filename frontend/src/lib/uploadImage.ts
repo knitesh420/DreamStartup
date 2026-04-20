@@ -78,7 +78,18 @@ export async function saveUploadedImages(files: File[]): Promise<string[]> {
       const message =
         error instanceof Error && error.message
           ? error.message
-          : "Failed to upload image to Cloudinary";
+          : typeof error === "object" &&
+              error !== null &&
+              "message" in error &&
+              typeof (error as { message?: unknown }).message === "string"
+            ? (error as { message: string }).message
+            : typeof error === "object" &&
+                error !== null &&
+                "error" in error &&
+                typeof (error as { error?: { message?: unknown } }).error?.message ===
+                  "string"
+              ? (error as { error: { message: string } }).error.message
+              : "Failed to upload image to Cloudinary";
       throw new ApiError(500, message);
     }
   }
